@@ -1,13 +1,13 @@
 import sys
 import numpy as np
 from collections import OrderedDict
+import xml.etree.ElementTree as ET
 
-
-def quad_params_from_mstate(filename: str, param_name: str = "setpoint") -> dict:
+def quad_params_from_mstate(mstate: str, param_name: str = "setpoint") -> dict:
     """Load quadrupole parameters from .mstate file."""
     tree = ET.parse(mstate)
     root = tree.getroot()
-    setpoints = collections.OrderedDict()
+    setpoints = OrderedDict()
     for item in root[0]:
         pv_name = item.attrib["setpoint_pv"].split(":")
         ps_name = pv_name[1].split("_")
@@ -43,7 +43,7 @@ class magConvert(object):
     def __init__(self,file = None):
         if type(file) == type(None):
             print('no coeffilename specified')
-            filename = '../pyorbit/inputs/magnets/magnet_coefficients.csv'
+            filename = '../common-inputs/magnets/magnet_coefficients.csv'
         else: 
             filename = file
         print('using file %s'%filename)

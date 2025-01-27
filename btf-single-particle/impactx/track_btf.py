@@ -11,7 +11,6 @@ import os
 import time
 
 import magnet_utilities
-import bunch_utilities
 import lattice_utilities
 
 
@@ -96,18 +95,12 @@ dpy_podv = amr.PODVector_real_std()
 dpt_podv = amr.PODVector_real_std()
 
 # place particles
-for p_dx in bunch['x']:
-    dx_podv.push_back(p_dx)
-for p_dy in bunch['y']:
-    dy_podv.push_back(p_dy)
-for p_dt in bunch['t']:
-    dt_podv.push_back(p_dt)
-for p_dpx in bunch['px']:
-    dpx_podv.push_back(p_dpx)
-for p_dpy in bunch['py']:
-    dpy_podv.push_back(p_dpy)
-for p_dpt in bunch['pt']:
-    dpt_podv.push_back(p_dpt)
+dx_podv.push_back(bunch['x'])
+dy_podv.push_back(bunch['y'])
+dt_podv.push_back(bunch['t'])
+dpx_podv.push_back(bunch['px'])
+dpy_podv.push_back(bunch['py'])
+dpt_podv.push_back(bunch['pt'])
 
 pc.add_n_particles(
     dx_podv, dy_podv, dt_podv, dpx_podv, dpy_podv, dpt_podv, qm_eev, bunch_charge_C
