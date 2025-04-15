@@ -20,7 +20,7 @@ pprint(args)
 
 # Build lattice from MADX lattice file
 lattice = TEAPOT_Ring()
-lattice.readMADX("../common/sns_ring.lattice", "rnginj")
+lattice.readMADX("../common-inputs/sns_ring.lattice", "rnginj")
 lattice.initialize()
 
 # Toggle fringe fields
