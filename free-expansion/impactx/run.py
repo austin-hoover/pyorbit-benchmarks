@@ -1,16 +1,20 @@
-#!/usr/bin/env python3
-#
-# Copyright 2022-2023 ImpactX contributors
-# Authors: Axel Huebl, Chad Mitchell
-# License: BSD-3-Clause-LBNL
-#
-# -*- coding: utf-8 -*-
+import argparse
+import impactx
+from scipy.constants import speed_of_light
 
-from impactx import ImpactX, distribution, elements
 
-sim = ImpactX()
+# Arguments
+parser = argparse.ArgumentParser()
+parser.add_argument("--kin-energy", type=float, default=0.0025, help="kinetic energy [MeV]")
+parser.add_argument("--intensity", type=float, default=2.00e+09)
+parser.add_argument("--nparts", type=int, default=256_000)
+args = parser.parse_args()
 
-# set numerical parameters and IO control
+
+# Initialize simulation
+sim = impactx.ImpactX()
+
+# Set numerical parameters and IO control
 sim.max_level = 1
 sim.n_cell = [16, 16, 20]
 sim.blocking_factor_x = [16]
@@ -23,43 +27,46 @@ sim.poisson_solver = "fft"
 sim.dynamic_size = True
 sim.prob_relative = [1.2, 1.1]
 
-# beam diagnostics
-# sim.diagnostics = False  # benchmarking
-sim.slice_step_diagnostics = False
+# Beam diagnostics
+sim.slice_step_diagnostics = True
 
-# domain decomposition & space charge mesh
+# Domain decomposition & space charge mesh
 sim.init_grids()
 
-# load a 2 GeV electron beam with an initial
-# unnormalized rms emittance of 2 nm
-kin_energy_MeV = 250  # reference energy
-bunch_charge_C = 1.0e-9  # used with space charge
-npart = 10000  # number of macro particles (outside tests, use 1e5 or more)
+# Beam parameters
+kin_energy = args.kin_energy * 1000.0  # [MeV]
+total_charge = args.intensity * 1.602176e-19  # [C]
+nparts = args.nparts
 
-#   reference particle
-ref = sim.particle_container().ref_particle()
-ref.set_charge_qe(-1.0).set_mass_MeV(0.510998950).set_kin_energy_MeV(kin_energy_MeV)
+# Reference particle
+ref_particle = sim.particle_container().ref_particle()
+ref_particle.set_charge_qe(1.0)
+ref_particle.set_mass_MeV(938.272029)
+ref_particle.set_kin_energy_MeV(kin_energy)
 
-#   particle bunch
-# [To do] Update to Gaussian
-distr = distribution.Kurth6D(
-    lambdaX=4.472135955e-4,
-    lambdaY=4.472135955e-4,
-    lambdaT=9.12241869e-7,
+# Load particles
+dist = impactx.distribution.Gaussian(
+    lambdaX=0.010,
+    lambdaY=0.010,
+    lambdaT=0.010 / ref_particle.beta,
     lambdaPx=0.0,
     lambdaPy=0.0,
     lambdaPt=0.0,
 )
-sim.add_particles(bunch_charge_C, distr, npart)
+sim.add_particles(total_charge, dist, nparts)
 
-# add beam diagnostics
-monitor = elements.BeamMonitor("monitor", backend="h5")
+# Diagnostics
+monitor = impactx.elements.BeamMonitor("monitor", backend="h5")
 
-# design the accelerator lattice
-sim.lattice.extend([monitor, elements.Drift(name="d1", ds=6.0, nslice=40), monitor])
+# Create accelerator lattice
+sim.lattice.extend([
+    monitor,
+    impactx.elements.Drift(name="drift1", ds=5.0, nslice=40),
+    monitor,
+])
 
-# run simulation
+# Run simulation
 sim.track_particles()
 
-# clean shutdown
+# Clean shutdown
 sim.finalize()
