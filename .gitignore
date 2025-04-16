@@ -175,3 +175,4 @@ cython_debug/
 
 .ipynb_checkpoints
 outputs
+diags
