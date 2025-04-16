@@ -1,0 +1,3 @@
+kin_energy: 0.0025  # [GeV]
+intensity: 2.00e+09
+nparts: 256_000
