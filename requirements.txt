@@ -1,0 +1,10 @@
+numpy==2.2.4
+matplotlib==3.9.4
+omegaconf==2.3.0
+
+
+# PyORBIT version info:
+
+# ImpactX version info:
+
+# Xsuite version info:
