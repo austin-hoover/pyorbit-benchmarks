@@ -1,119 +1,71 @@
-import argparse
 import os
-import pathlib
-import sys
-import time
-
 import numpy as np
+import pandas as pd
+from omegaconf import DictConfig
+from omegaconf import OmegaConf
 
 from orbit.core import orbit_mpi
 from orbit.core.bunch import Bunch
 from orbit.core.bunch import BunchTwissAnalysis
 from orbit.core.spacecharge import SpaceChargeCalc3D
-from orbit.bunch_generators import GaussDist3D
-from orbit.bunch_generators import TwissContainer
 from orbit.lattice import AccActionsContainer
 from orbit.space_charge.sc3d import setSC3DAccNodes
 from orbit.teapot import TEAPOT_Lattice
 from orbit.teapot import DriftTEAPOT
-from orbit.utils.consts import charge_electron
-from orbit.utils.consts import mass_proton
-
-
-# Arguments
-# --------------------------------------------------------------------------------------
-
-parser = argparse.ArgumentParser()
-parser.add_argument("--nparts", type=int, default=100_000)
-parser.add_argument("--mass", type=float, default=mass_proton)
-parser.add_argument("--current", type=float, default=0.050)
-parser.add_argument("--kin-energy", type=float, default=0.0025)
-
-parser.add_argument("--scale-x", type=float, default=0.001)
-parser.add_argument("--scale-y", type=float, default=0.001)
-parser.add_argument("--scale-z", type=float, default=0.001)
-
-parser.add_argument("--sc-grid-x", type=int, default=64)
-parser.add_argument("--sc-grid-y", type=int, default=64)
-parser.add_argument("--sc-grid-z", type=int, default=64)
-
-parser.add_argument("--distance", type=float, default=1.000)
-parser.add_argument("--ds", type=float, default=0.01)
-
-parser.add_argument("--seed", type=float, default=0)
-args = parser.parse_args()
 
 
 # Setup
 # --------------------------------------------------------------------------------------
 
-# MPI
-_mpi_comm = orbit_mpi.mpi_comm.MPI_COMM_WORLD
-_mpi_rank = orbit_mpi.MPI_Comm_rank(_mpi_comm)
-_mpi_size = orbit_mpi.MPI_Comm_size(_mpi_comm)
-
+# Load config dict
+cfg = OmegaConf.load("../config.yaml")
 
 # Create output directory
-path = pathlib.Path(__file__)
-output_dir = os.path.join("outputs", path.stem)
-if _mpi_rank  == 0:
-    os.makedirs(output_dir, exist_ok=True)
+output_dir = "outputs"
+os.makedirs(output_dir, exist_ok=True)
         
 
 # Lattice
 # --------------------------------------------------------------------------------------
 
-# Create a drift lattice with required step size
+delta_s = cfg.distance / cfg.nsteps
+
 lattice = TEAPOT_Lattice()
-for _ in range(int(args.distance / args.ds)):
+for _ in range(cfg.nsteps):
     node = DriftTEAPOT()
-    node.setLength(args.ds)
+    node.setLength(delta_s)
     lattice.addNode(node)
+
 lattice.initialize()
 
-# Add 3D space charge nodes
-sc_calc = SpaceChargeCalc3D(args.sc_grid_x, args.sc_grid_y, args.sc_grid_z)
-sc_nodes = setSC3DAccNodes(lattice, args.ds, sc_calc)
+sc_calc = SpaceChargeCalc3D(cfg.grid.x, cfg.grid.y, cfg.grid.z)
+sc_nodes = setSC3DAccNodes(lattice, delta_s, sc_calc)
 
 
 # Bunch
 # --------------------------------------------------------------------------------------
 
-# Create empty bunch
 bunch = Bunch()
-bunch.mass(args.mass)
-bunch.getSyncParticle().kinEnergy(args.kin_energy)
+bunch.mass(cfg.mass)
+bunch.getSyncParticle().kinEnergy(cfg.kin_energy)
 
-# Add particles to bunch
-rng = np.random.default_rng(args.seed)
-for index in range(args.nparts):    
-    x = rng.normal(scale=args.scale_x)
-    y = rng.normal(scale=args.scale_y)
-    z = rng.normal(scale=args.scale_z)
+rng = np.random.default_rng(cfg.seed)
+for index in range(cfg.nparts):    
+    x = rng.normal(scale=cfg.xrms)
+    y = rng.normal(scale=cfg.yrms)
+    z = rng.normal(scale=cfg.zrms)
     xp = 0.0
     yp = 0.0
     de = 0.0
-
-    (x, xp, y, yp, z, de) = orbit_mpi.MPI_Bcast(
-        (x, xp, y, yp, z, de), orbit_mpi.mpi_datatype.MPI_DOUBLE, 0, _mpi_comm
-    )
-
-    if index % _mpi_size == _mpi_rank:
-        bunch.addParticle(x, xp, y, yp, z, de)
+    bunch.addParticle(x, xp, y, yp, z, de)
     
-# Set macrosize
-frequency = 402.5e6  # [Hz]
-charge = args.current / frequency
-intensity = charge / (abs(bunch.charge()) * charge_electron)
-
 size_global = bunch.getSizeGlobal()
-macro_size = intensity / size_global
+macro_size = cfg.intensity / size_global
 bunch.macroSize(macro_size)
 
 
 # Tracking
 # --------------------------------------------------------------------------------------
-
 
 def get_bunch_cov(bunch: Bunch) -> np.ndarray:
     order = 2
@@ -131,40 +83,52 @@ def get_bunch_cov(bunch: Bunch) -> np.ndarray:
 
 
 class Monitor:
-    """Monitors bunch size during simulation."""
     def __init__(self) -> None:
-        self.start_time = None
+        self.history = {}
+        for key in [
+            "s",
+            "sig_x",
+            "sig_y",
+            "sig_z",
+            "emittance_x",
+            "emittance_y",
+            "emittance_z",
+        ]:
+            self.history[key] = []
 
     def __call__(self, params_dict: dict) -> None:   
-        # Update parameters
-        if self.start_time is None:
-            self.start_time = time.time()
-
-        time_ellapsed = time.time() - self.start_time
+        bunch = params_dict["bunch"]
+        node = params_dict["node"]
         distance = params_dict["path_length"]
 
-        # Calculate bunch statistics
-        bunch = params_dict["bunch"]
-
         cov_matrix = get_bunch_cov(bunch)
-        x_rms = np.sqrt(cov_matrix[0, 0]) * 1000.0
-        y_rms = np.sqrt(cov_matrix[2, 2]) * 1000.0
-        z_rms = np.sqrt(cov_matrix[4, 4]) * 1000.0
+        sigma_x = np.sqrt(cov_matrix[0, 0])
+        sigma_y = np.sqrt(cov_matrix[2, 2])
+        sigma_z = np.sqrt(cov_matrix[4, 4])
 
-        # Print update
-        if _mpi_rank == 0:
-            message = ""
-            message += "time={:0.3f} ".format(time_ellapsed) 
-            message += "s={:0.3f} ".format(distance)
-            message += "xrms={:0.3f} ".format(x_rms)
-            message += "yrms={:0.3f} ".format(y_rms)
-            message += "zrms={:0.3f} ".format(z_rms)
-            print(message)
-            sys.stdout.flush()
+        emittance_x = np.sqrt(np.linalg.det(cov_matrix[0:2, 0:2]))
+        emittance_y = np.sqrt(np.linalg.det(cov_matrix[2:4, 2:4]))
+        emittance_z = np.sqrt(np.linalg.det(cov_matrix[4:6, 4:6]))
+
+        self.history["s"].append(distance)
+        self.history["sig_x"].append(sigma_x)
+        self.history["sig_y"].append(sigma_y)
+        self.history["sig_z"].append(sigma_z)
+        self.history["emittance_x"].append(emittance_x)
+        self.history["emittance_y"].append(emittance_y)
+        self.history["emittance_z"].append(emittance_z)
+
+        message = ""
+        message += "s={:0.3f} ".format(distance)
+        message += "xrms={:0.3f} ".format(sigma_x * 1000.0)
+        message += "yrms={:0.3f} ".format(sigma_y * 1000.0)
+        message += "zrms={:0.3f} ".format(sigma_z * 1000.0)
+        print(message)
 
         
 monitor = Monitor()
 action_container = AccActionsContainer()
+action_container.addAction(monitor, AccActionsContainer.ENTRANCE)
 action_container.addAction(monitor, AccActionsContainer.EXIT)
 
 bunch.dumpBunch(os.path.join(output_dir, "bunch_00.dat"))
@@ -172,3 +136,6 @@ bunch.dumpBunch(os.path.join(output_dir, "bunch_00.dat"))
 lattice.trackBunch(bunch, actionContainer=action_container)
 
 bunch.dumpBunch(os.path.join(output_dir, "bunch_01.dat"))
+
+history = pd.DataFrame(monitor.history)
+history.to_csv(os.path.join(output_dir, "history.csv"))

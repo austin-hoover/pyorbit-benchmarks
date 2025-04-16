@@ -1,5 +1,17 @@
+charge: 1.0  # [e]
+mass: 0.938272029  # [GeV / c^2]
 kin_energy: 0.0025  # [GeV]
-intensity: 2.00e+09
-nparts: 256_000
+intensity: 2.00e+09  # number of protons
+xrms: 0.010  # [m]
+yrms: 0.010  # [m]
+zrms: 0.010  # [m]
+nparts: 256_000  # number of macroparticles
+distance: 5.0  # drift length [m]
+nsteps: 100
 
-distance: 5.0  # [m]
+grid:
+  x: 64
+  y: 64
+  z: 64
+
+seed: 12345

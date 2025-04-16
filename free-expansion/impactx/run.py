@@ -1,11 +1,8 @@
-import argparse
-import impactx
-from scipy.constants import speed_of_light
-
 from omegaconf import DictConfig
 from omegaconf import OmegaConf
+from scipy.constants import speed_of_light
 
-import yaml
+import impactx
 
 
 # Load config dict
@@ -36,20 +33,21 @@ sim.init_grids()
 
 # Beam parameters
 kin_energy = cfg.kin_energy * 1000.0  # [MeV]
+mass = cfg.mass * 1000.0  # [MeV]
 total_charge = cfg.intensity * 1.602176e-19  # [C]
 nparts = cfg.nparts
 
 # Reference particle
 ref_particle = sim.particle_container().ref_particle()
-ref_particle.set_charge_qe(1.0)
-ref_particle.set_mass_MeV(938.272029)
+ref_particle.set_charge_qe(cfg.charge)
+ref_particle.set_mass_MeV(mass)
 ref_particle.set_kin_energy_MeV(kin_energy)
 
 # Load particles
 dist = impactx.distribution.Gaussian(
-    lambdaX=0.010,
-    lambdaY=0.010,
-    lambdaT=0.010 / ref_particle.beta,
+    lambdaX=cfg.xrms,
+    lambdaY=cfg.yrms,
+    lambdaT=cfg.zrms / ref_particle.beta,
     lambdaPx=0.0,
     lambdaPy=0.0,
     lambdaPt=0.0,
@@ -62,7 +60,7 @@ monitor = impactx.elements.BeamMonitor("monitor", backend="h5")
 # Create accelerator lattice
 sim.lattice.extend([
     monitor,
-    impactx.elements.Drift(name="drift1", ds=5.0, nslice=40),
+    impactx.elements.Drift(name="drift1", ds=cfg.distance, nslice=cfg.nsteps),
     monitor,
 ])
 
