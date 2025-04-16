@@ -2,13 +2,14 @@ import argparse
 import impactx
 from scipy.constants import speed_of_light
 
+from omegaconf import DictConfig
+from omegaconf import OmegaConf
 
-# Arguments
-parser = argparse.ArgumentParser()
-parser.add_argument("--kin-energy", type=float, default=0.0025, help="kinetic energy [MeV]")
-parser.add_argument("--intensity", type=float, default=2.00e+09)
-parser.add_argument("--nparts", type=int, default=256_000)
-args = parser.parse_args()
+import yaml
+
+
+# Load config dict
+cfg = OmegaConf.load("../config.yaml")
 
 
 # Initialize simulation
@@ -34,9 +35,9 @@ sim.slice_step_diagnostics = True
 sim.init_grids()
 
 # Beam parameters
-kin_energy = args.kin_energy * 1000.0  # [MeV]
-total_charge = args.intensity * 1.602176e-19  # [C]
-nparts = args.nparts
+kin_energy = cfg.kin_energy * 1000.0  # [MeV]
+total_charge = cfg.intensity * 1.602176e-19  # [C]
+nparts = cfg.nparts
 
 # Reference particle
 ref_particle = sim.particle_container().ref_particle()
