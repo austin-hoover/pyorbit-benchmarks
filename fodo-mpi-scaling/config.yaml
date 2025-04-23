@@ -1,0 +1,29 @@
+seed: 12345
+
+bunch:
+  alpha_x: 0.0
+  alpha_y: 0.0
+  beta_x: 9.11
+  beta_y: 0.99
+  eps_x: 5.00e-06
+  eps_y: 5.00e-06
+  sigma_z: 0.005
+  size: 100_000
+  intensity: 0.25e+09
+  charge: 1.0  # [e]
+  mass: 0.938272029  # [GeV / c^2]
+  kin_energy: 0.0025  # [GeV]
+
+lattice:
+  length: 5.0  # total lattice length [m]
+  fill_fraction: 0.5  # quadrupole fill fraction
+  ds: 0.01  # ds slice [m]
+  quad_gradient: 0.65
+  spacecharge: false
+  periods: 3
+
+spacecharge:
+  grid:
+    x: 64
+    y: 64
+    z: 64
