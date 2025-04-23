@@ -34,9 +34,9 @@ plt.savefig(os.path.join(output_dir, "fig_rms_sizes.png"), dpi=300)
 
 # Plot rms beam sizes
 fig, ax = plt.subplots(figsize=(3, 2))
-ax.plot(history["s"], history["emittance_x"] * 1.00e+06)
-ax.plot(history["s"], history["emittance_y"] * 1.00e+06)
-ax.plot(history["s"], history["emittance_z"] * 1.00e+06)
+ax.plot(history["s"], history["emittance_x"] * 1.00e06)
+ax.plot(history["s"], history["emittance_y"] * 1.00e06)
+ax.plot(history["s"], history["emittance_z"] * 1.00e06)
 plt.savefig(os.path.join(output_dir, "fig_rms_emittances.png"), dpi=300)
 
 
@@ -45,7 +45,8 @@ def beam_df_to_np(beam: pd.DataFrame) -> np.ndarray:
     columns = ["position_x", "momentum_x", "position_y", "momentum_y", "position_t", "momentum_t"]
     x = beam.loc[:, columns].values
     x = x * 1000.0
-    return x 
+    return x
+
 
 series = io.Series("./diags/openPMD/monitor.h5", io.Access.read_only)
 last_step = list(series.iterations)[-1]

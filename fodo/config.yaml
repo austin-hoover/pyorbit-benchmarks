@@ -8,7 +8,7 @@ bunch:
   eps_x: 5.00e-06
   eps_y: 5.00e-06
   sigma_z: 0.005
-  size: 100_000
+  size: 1_000_000
   intensity: 0.25e+09
   charge: 1.0  # [e]
   mass: 0.938272029  # [GeV / c^2]

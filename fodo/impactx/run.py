@@ -52,8 +52,8 @@ beta_x = cfg.bunch.beta_x
 beta_y = cfg.bunch.beta_y
 eps_x = cfg.bunch.eps_x
 eps_y = cfg.bunch.eps_y
-gamma_x = (1.0 + alpha_x ** 2) / beta_x
-gamma_y = (1.0 + alpha_y ** 2) / beta_y
+gamma_x = (1.0 + alpha_x**2) / beta_x
+gamma_y = (1.0 + alpha_y**2) / beta_y
 
 dist = impactx.distribution.Gaussian(
     lambdaX=np.sqrt(eps_x / gamma_x),

@@ -108,7 +108,9 @@ for i in range(cfg.bunch.size):
     z = rng.normal(scale=cfg.bunch.sigma_z)
     de = 0.0
 
-    (x, xp, y, yp, z, de) = orbit_mpi.MPI_Bcast((x, xp, y, yp, z, de), data_type, main_rank, _mpi_comm)
+    (x, xp, y, yp, z, de) = orbit_mpi.MPI_Bcast(
+        (x, xp, y, yp, z, de), data_type, main_rank, _mpi_comm
+    )
     if i % _mpi_size == _mpi_rank:
         bunch.addParticle(x, xp, y, yp, z, de)
 
@@ -118,6 +120,7 @@ if cfg.bunch.intensity > 0:
 
 # Tracking
 # --------------------------------------------------------------------------------------
+
 
 def get_bunch_cov(bunch: Bunch) -> np.ndarray:
     order = 2
@@ -148,7 +151,7 @@ class Monitor:
         ]:
             self.history[key] = []
 
-    def __call__(self, params_dict: dict) -> None:   
+    def __call__(self, params_dict: dict) -> None:
         bunch = params_dict["bunch"]
         node = params_dict["node"]
         distance = params_dict["path_length"]
@@ -179,7 +182,7 @@ class Monitor:
             print(message)
             sys.stdout.flush()
 
-        
+
 monitor = Monitor()
 action_container = AccActionsContainer()
 action_container.addAction(monitor, AccActionsContainer.ENTRANCE)

@@ -23,8 +23,8 @@ plt.savefig(os.path.join("outputs", "fig_history_rms.png"), dpi=300)
 
 # Plot rms emittances vs. distance
 fig, ax = plt.subplots(figsize=(3, 2))
-ax.plot(history["s"], history["emittance_x"] * 1.00e+06)
-ax.plot(history["s"], history["emittance_y"] * 1.00e+06)
+ax.plot(history["s"], history["emittance_x"] * 1.00e06)
+ax.plot(history["s"], history["emittance_y"] * 1.00e06)
 ax.plot(history["s"], history["emittance_z"])
 plt.savefig(os.path.join("outputs", "fig_history_emittance.png"), dpi=300)
 
@@ -34,6 +34,7 @@ def load_bunch(filename: str) -> np.ndarray:
     x = np.loadtxt(filename, usecols=range(6), comments="%")
     x = x * 1000.0
     return x
+
 
 bunch_filenames = [
     "outputs/bunch_00.dat",
@@ -55,5 +56,3 @@ for ax, x in zip(axs, bunches):
     log_values = np.log10(values + 1.00e-08)
     ax.pcolormesh(edges[0], edges[1], log_values.T, vmax=0.0, vmin=-3.0)
 plt.savefig(os.path.join("outputs", "fig_bunch_x_xp.png"), dpi=300)
-
-

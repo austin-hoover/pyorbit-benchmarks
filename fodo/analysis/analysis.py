@@ -3,6 +3,7 @@ import h5py
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import scipy.ndimage
 import ultraplot as uplt
 from omegaconf import DictConfig
 from omegaconf import OmegaConf
@@ -42,8 +43,16 @@ histories["impactx"] = history_rms.copy()
 
 fig, axs = uplt.subplots(ncols=3, figheight=1.75)
 for ax, key in zip(axs, ["sig_x", "sig_y", "sig_z"]):
-    ax.plot(histories["pyorbit"]["s"], histories["pyorbit"][key] * 1000.0, label="impactx", color="blacK", lw=2.0)
-    ax.plot(histories["impactx"]["s"], histories["impactx"][key] * 1000.0, label="pyorbit", color="red")
+    ax.plot(
+        histories["pyorbit"]["s"],
+        histories["pyorbit"][key] * 1000.0,
+        label="impactx",
+        color="blacK",
+        lw=2.0,
+    )
+    ax.plot(
+        histories["impactx"]["s"], histories["impactx"][key] * 1000.0, label="pyorbit", color="red"
+    )
 axs.format(xlabel="Distance [m]", ylabel="[mm]")
 axs[0].set_title(r"$\sqrt{\langle xx \rangle}$", fontsize="medium")
 axs[1].set_title(r"$\sqrt{\langle yy \rangle}$", fontsize="medium")
@@ -58,8 +67,16 @@ plt.savefig(filename)
 
 fig, axs = uplt.subplots(ncols=2, figheight=1.75)
 for ax, key in zip(axs, ["emittance_x", "emittance_y"]):
-    ax.plot(histories["pyorbit"]["s"], histories["pyorbit"][key] * 1.0e+06, label="impactx", color="blacK", lw=2.0)
-    ax.plot(histories["impactx"]["s"], histories["impactx"][key] * 1.0e+06, label="pyorbit", color="red")
+    ax.plot(
+        histories["pyorbit"]["s"],
+        histories["pyorbit"][key] * 1.0e06,
+        label="impactx",
+        color="blacK",
+        lw=2.0,
+    )
+    ax.plot(
+        histories["impactx"]["s"], histories["impactx"][key] * 1.0e06, label="pyorbit", color="red"
+    )
 axs.format(xlabel="Distance [m]", ylabel="[mm mrad]")
 axs[0].set_title(r"$\varepsilon_x$", fontsize="medium")
 axs[1].set_title(r"$\varepsilon_y$", fontsize="medium")
@@ -74,6 +91,7 @@ plt.savefig(filename)
 # Phase space distribution
 # --------------------------------------------------------------------------------------
 
+
 def pyorbit_to_impactx(bunch: np.ndarray, kin_energy: float, mass: float) -> np.ndarray:
     """Convert PyORBIT to ImpactX phase space coordinates.
 
@@ -85,19 +103,19 @@ def pyorbit_to_impactx(bunch: np.ndarray, kin_energy: float, mass: float) -> np.
     beta0 = np.sqrt(gamma0**2 - 1.0) / gamma0
 
     # GeV to MeV
-    bunch[:, 5] *= 1.00e+03
-    
+    bunch[:, 5] *= 1.00e03
+
     # x -> x
     # y -> y
     # z -> ct
     dx = bunch[:, 0]
     dy = bunch[:, 2]
     dt = bunch[:, 4] / beta0
-    
+
     # Unitless momentum
     dgamma = bunch[:, 5] / mass
     gamma = gamma0 + dgamma
-    
+
     betax = beta0 * bunch[:, 1]
     betay = beta0 * bunch[:, 3]
     gammax = 1.0 / np.sqrt(1.0 - betax**2)  # basically 1
@@ -106,7 +124,7 @@ def pyorbit_to_impactx(bunch: np.ndarray, kin_energy: float, mass: float) -> np.
     dpy = (betay * gammay) / (beta0 * gamma0)
     dpt = (dgamma) / (beta0 * gamma0)
 
-    return np.stack([dx, dpx, dy, dpy, dt, dpt], axis=-1) 
+    return np.stack([dx, dpx, dy, dpy, dt, dpt], axis=-1)
 
 
 particles = {}
@@ -121,7 +139,9 @@ filenames = [
 ]
 for filename in filenames:
     x = np.loadtxt(filename, usecols=range(6), comments="%")
-    x = pyorbit_to_impactx(x, kin_energy=(cfg.bunch.kin_energy * 1000.0), mass=(cfg.bunch.mass * 1000.0))
+    x = pyorbit_to_impactx(
+        x, kin_energy=(cfg.bunch.kin_energy * 1000.0), mass=(cfg.bunch.mass * 1000.0)
+    )
     particles["pyorbit"].append(x.copy())
 
 
@@ -144,7 +164,7 @@ for step_key in step_keys:
 
 
 # Plot 2D projections (x-px, y-py, t-pt)
-bins = 64
+bins = 85
 
 xmax = np.std(particles["pyorbit"][-1], axis=0) * 5.0 * 1000.0
 limits = list(zip(-xmax, xmax))
@@ -158,7 +178,9 @@ for axis in [(0, 1), (2, 3), (4, 5)]:
         for j, key in enumerate(["pyorbit", "impactx"]):
             for i, x in enumerate(particles[key]):
                 ax = axs[i, j]
-                values, edges = np.histogramdd(x[:, axis] * 1000.0, bins=bins, range=[limits[k] for k in axis])
+                values, edges = np.histogramdd(
+                    x[:, axis] * 1000.0, bins=bins, range=[limits[k] for k in axis]
+                )
                 values = values / np.max(values)
 
                 vmax = 1.0
@@ -168,7 +190,17 @@ for axis in [(0, 1), (2, 3), (4, 5)]:
                     vmax = 0.0
                     vmin = -4.0
 
-                ax.pcolormesh(edges[0], edges[1], values.T, cmap="viridis", vmax=vmax, vmin=vmin)
+                ax.pcolormesh(
+                    edges[0],
+                    edges[1],
+                    values.T,
+                    cmap="plasma",
+                    vmax=vmax,
+                    vmin=vmin,
+                    N=14,
+                    colorbar=(j == 1),
+                    colorbar_kw=dict(width=1.0),
+                )
 
         axs.format(
             xlabel=labels[axis[0]],
@@ -197,28 +229,36 @@ for index in range(2):
         x = particles[code_name][index].copy()
 
         for log in [False, True]:
-            grid = psv.CornerGrid(ndim=6, figwidth=7.0)
+            grid = psv.CornerGrid(ndim=6, figwidth=7.0, diag_rspine=True, space=1.0)
             grid.set_labels(labels)
             grid.set_limits(limits)
+
+            kws = {}
+            if log:
+                kws["norm"] = "log"
+                kws["vmax"] = 1.0
+                kws["vmin"] = 1.00e-04
+
             grid.plot(
-                x * 1000.0, 
-                bins=64, 
+                x * 1000.0,
+                bins=64,
                 limits=limits,
                 process_kws=dict(scale="max"),
-                mask=False, 
+                mask=False,
                 offset=1.00e-12,
                 offset_type="absolute",
-                norm="log",
-                vmax=1.0,
-                vmin=(10.0 ** -4.0),
-                cmap="viridis", 
+                cmap="viridis",
                 diag_kws=dict(lw=1.3),
+                **kws,
             )
+            if log:
+                grid.format_diag(yscale="log", yformatter="log", ymin=1.00e-05, ymax=5.0)
 
-            filename = f"fig_corner"
+            filename = f"fig_corner_{code_name}"
+            filename = f"{filename}_{index:02.0f}.png"
             if log:
                 filename = f"{filename}_log"
-            filename = f"{filename}_{code_name}_{index:02.0f}.png"
+            filename = f"{filename}_{index:02.0f}.png"
             filename = os.path.join(output_dir, filename)
             print(filename)
             plt.savefig(filename)
