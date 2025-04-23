@@ -1,0 +1,15 @@
+charge: 1.0  # [e]
+mass: 0.938272029  # [GeV / c^2]
+kin_energy: 0.0025  # [GeV]
+
+quad:
+  length: 1.0  # [m]
+  gradient: 1.0  # [T/m]
+nsteps: 100
+
+x: 0.001
+y: 0.001
+z: 0.0
+xp: 0.0
+yp: 0.0
+dE: 0.0
