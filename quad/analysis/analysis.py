@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 
 
+plt.rcParams["axes.linewidth"] = 1.25
 plt.rcParams["xtick.minor.visible"] = True
 plt.rcParams["ytick.minor.visible"] = True
 
