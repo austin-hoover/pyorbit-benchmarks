@@ -5,7 +5,9 @@ import openpmd_api as io
 
 import matplotlib.pyplot as plt
 
-
+plt.rcParams["axes.linewidth"] = 1.25
+plt.rcParams["xtick.minor.visible"] = True
+plt.rcParams["ytick.minor.visible"] = True
 plt.rcParams["figure.constrained_layout.use"] = True
 
 

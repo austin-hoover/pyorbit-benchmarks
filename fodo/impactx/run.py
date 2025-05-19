@@ -25,7 +25,7 @@ sim.particle_shape = 2  # B-spline order
 sim.space_charge = "3D"
 sim.poisson_solver = "fft"
 sim.dynamic_size = True
-sim.prob_relative = [1.2, 1.1]
+sim.prob_relative = [1.1, 1.1]
 
 # Beam diagnostics
 sim.slice_step_diagnostics = True

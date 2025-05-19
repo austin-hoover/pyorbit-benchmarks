@@ -9,6 +9,7 @@ from omegaconf import DictConfig
 from omegaconf import OmegaConf
 
 
+uplt.rc["axes.linewidth"] = 1.25
 uplt.rc["cmap.discrete"] = False
 uplt.rc["cmap.sequential"] = "viridis"
 uplt.rc["figure.facecolor"] = "white"
@@ -23,12 +24,13 @@ output_dir = "outputs"
 os.makedirs(output_dir, exist_ok=True)
 
 cfg = OmegaConf.load("../config.yaml")
-cfg
+print(cfg)
 
 
 # Scalar history
 # --------------------------------------------------------------------------------------
 
+# Collect data
 histories = {}
 
 history = pd.read_csv("../pyorbit/outputs/history.csv")
@@ -40,7 +42,7 @@ history_rms["sig_z"] = history_rms["sig_t"] * history_ref["beta"]
 history_rms["emittance_z"] = history_rms["emittance_t"]
 histories["impactx"] = history_rms.copy()
 
-
+# Plot rms size vs. distance
 fig, axs = uplt.subplots(ncols=3, figheight=1.75)
 for ax, key in zip(axs, ["sig_x", "sig_y", "sig_z"]):
     ax.plot(
@@ -65,6 +67,7 @@ print(filename)
 plt.savefig(filename)
 
 
+# Plot rms emittance vs. distance
 fig, axs = uplt.subplots(ncols=2, figheight=1.75)
 for ax, key in zip(axs, ["emittance_x", "emittance_y"]):
     ax.plot(
@@ -199,7 +202,7 @@ for axis in [(0, 1), (2, 3), (4, 5)]:
                     vmin=vmin,
                     N=14,
                     colorbar=(j == 1),
-                    colorbar_kw=dict(width=1.0),
+                    # colorbar_kw=dict(width=1.0),
                 )
 
         axs.format(
@@ -227,38 +230,29 @@ for index in range(2):
         print(code_name)
 
         x = particles[code_name][index].copy()
+        x = x * 1000.0
+        
+        grid = psv.CornerGrid(ndim=6, figwidth=7.0, diag_rspine=True, space=1.0)
+        grid.set_labels(labels)
+        grid.set_limits(limits)
 
-        for log in [False, True]:
-            grid = psv.CornerGrid(ndim=6, figwidth=7.0, diag_rspine=True, space=1.0)
-            grid.set_labels(labels)
-            grid.set_limits(limits)
+        plot_kws = {}
 
-            kws = {}
-            if log:
-                kws["norm"] = "log"
-                kws["vmax"] = 1.0
-                kws["vmin"] = 1.00e-04
+        grid.plot(
+            x,
+            bins=64,
+            limits=limits,
+            process_kws=dict(scale="max"),
+            mask=False,
+            offset=1.00e-12,
+            offset_type="absolute",
+            cmap="viridis",
+            diag_kws=dict(lw=1.3),
+            **plot_kws,
+        )
 
-            grid.plot(
-                x * 1000.0,
-                bins=64,
-                limits=limits,
-                process_kws=dict(scale="max"),
-                mask=False,
-                offset=1.00e-12,
-                offset_type="absolute",
-                cmap="viridis",
-                diag_kws=dict(lw=1.3),
-                **kws,
-            )
-            if log:
-                grid.format_diag(yscale="log", yformatter="log", ymin=1.00e-05, ymax=5.0)
-
-            filename = f"fig_corner_{code_name}"
-            filename = f"{filename}_{index:02.0f}.png"
-            if log:
-                filename = f"{filename}_log"
-            filename = f"{filename}_{index:02.0f}.png"
-            filename = os.path.join(output_dir, filename)
-            print(filename)
-            plt.savefig(filename)
+        filename = f"fig_corner_{code_name}"
+        filename = f"{filename}_{index:02.0f}.png"
+        filename = os.path.join(output_dir, filename)
+        print(filename)
+        plt.savefig(filename)

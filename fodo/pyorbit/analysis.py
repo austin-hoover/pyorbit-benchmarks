@@ -4,9 +4,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 
-plt.rcParams["figure.constrained_layout.use"] = True
+plt.rcParams["axes.linewidth"] = 1.25
 plt.rcParams["xtick.minor.visible"] = True
 plt.rcParams["ytick.minor.visible"] = True
+plt.rcParams["figure.constrained_layout.use"] = True
 
 
 # Load scalar history
