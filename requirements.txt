@@ -4,8 +4,14 @@ matplotlib==3.9.4
 omegaconf==2.3.0
 pandas==2.2.3
 
-# PyORBIT version info:
+# PyORBIT
+# https://github.com/PyORBIT-Collaboration/PyORBIT3
 
-# ImpactX version info:
+# ImpactX
+# https://github.com/BLAST-ImpactX/impactx
 
-# Xsuite version info:
+# Xsuite
+# https://github.com/xsuite/
+
+# Cheetah
+# https://github.com/desy-ml/cheetah
