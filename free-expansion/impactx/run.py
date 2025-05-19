@@ -8,22 +8,22 @@ import impactx
 # Load config dict
 cfg = OmegaConf.load("../config.yaml")
 
-
 # Initialize simulation
 sim = impactx.ImpactX()
+# help(sim)
 
 # Set numerical parameters and IO control
 sim.max_level = 1
 sim.n_cell = [16, 16, 20]
-sim.blocking_factor_x = [16]
-sim.blocking_factor_y = [16]
-sim.blocking_factor_z = [4]
+sim.blocking_factor_x = [16]  # [?]
+sim.blocking_factor_y = [16]  # [?]
+sim.blocking_factor_z = [4]  # [?]
 
 sim.particle_shape = 2  # B-spline order
 sim.space_charge = "3D"
-sim.poisson_solver = "fft"
-sim.dynamic_size = True
-sim.prob_relative = [1.2, 1.1]
+sim.poisson_solver = "fft"  
+sim.dynamic_size = True  # dynamic mesh sizing [?]
+sim.prob_relative = [1.05, 1.05, 1.05]  # mesh size relative to beam extent
 
 # Beam diagnostics
 sim.slice_step_diagnostics = True

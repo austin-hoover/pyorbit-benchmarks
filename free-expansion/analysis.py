@@ -14,6 +14,7 @@ import ultraplot as uplt
 output_dir = "outputs/analysis"
 os.makedirs(output_dir, exist_ok=True)
 
+uplt.rc["axes.linewidth"] = 1.25
 uplt.rc["cmap.discrete"] = False
 uplt.rc["cmap.sequential"] = "viridis"
 uplt.rc["figure.facecolor"] = "white"
