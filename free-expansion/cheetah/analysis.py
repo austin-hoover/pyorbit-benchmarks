@@ -48,7 +48,7 @@ dims = ["x", "px", "y", "py", "t", "pt"]
 for axis in [(0, 1), (2, 3), (0, 2)]:
     fig, axs = plt.subplots(ncols=2, figsize=(5, 2.5), sharex=True, sharey=True)
     for ax, x in zip(axs, bunches):
-        values, edges = np.histogramdd(x[:, axis], bins=45, range=[limits[k] for k in axis])
+        values, edges = np.histogramdd(x[:, axis], bins=64, range=[limits[k] for k in axis])
         ax.pcolormesh(edges[0], edges[1], values.T)
 
     filename = f"fig_dist_{dims[axis[0]]}{dims[axis[1]]}.png"

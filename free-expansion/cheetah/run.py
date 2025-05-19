@@ -24,54 +24,48 @@ os.makedirs(output_dir, exist_ok=True)
 # Beam
 # --------------------------------------------------------------------------------------
 
-R0 = torch.tensor(0.001)
-energy = torch.tensor(2.50e+08)
-rest_energy = torch.tensor(constants.electron_mass * constants.speed_of_light**2 / constants.elementary_charge)
+species = cheetah.particles.Species("proton")
+kin_energy = torch.tensor(cfg.kin_energy) * 1.00e+09  # [eV]
+rest_energy = torch.tensor(cfg.mass * 1.00e+09)  # [eV]
 elementary_charge = torch.tensor(constants.elementary_charge)
-electron_radius = torch.tensor(physical_constants["classical electron radius"][0])
-gamma = energy / rest_energy
-beta = torch.sqrt(1.0 - 1.0 / gamma**2)
 
-beam = cheetah.ParticleBeam.uniform_3d_ellipsoid(
-    num_particles=torch.tensor(100_000),
-    total_charge=torch.tensor(1e-8),
-    energy=energy,
-    radius_x=R0,
-    radius_y=R0,
-    radius_tau=R0 / gamma,  # Radius of the beam in s direction in the lab frame
-    sigma_px=torch.tensor(1e-15),
-    sigma_py=torch.tensor(1e-15),
-    sigma_p=torch.tensor(1e-15),
+particles = torch.zeros((cfg.nparts, 7))
+particles[:, 0] = torch.randn(particles.shape[0]) * cfg.xrms
+particles[:, 2] = torch.randn(particles.shape[0]) * cfg.yrms
+particles[:, 4] = torch.randn(particles.shape[0]) * cfg.zrms
+particles[:, -1] = torch.ones(particles.shape[0])
+
+particle_charges = (cfg.intensity / cfg.nparts) * elementary_charge
+
+beam = cheetah.ParticleBeam(
+    particles,
+    energy=(kin_energy + rest_energy),
+    species=species,
+    particle_charges=particle_charges,
 )
+
 
 # Lattice
 # --------------------------------------------------------------------------------------
 
-# Compute section length
-kappa = 1.0 + (torch.sqrt(torch.tensor(2.0)) / 4.0) * torch.log(3.0 + 2.0 * torch.sqrt(torch.tensor(2.0)))
-intensity = beam.total_charge / elementary_charge
-section_length = beta * gamma * kappa * torch.sqrt(R0**3 / (intensity * electron_radius))
-
-nslice = 10
-slice_length = section_length / nslice
-
-
+length = torch.tensor(cfg.distance)
+n_slice = 50
+slice_length = length / n_slice
+    
 elements = []
-elements.append(cheetah.Drift(slice_length * 0.5))
-for index in range(nslice):
+for index in range(n_slice):
     elements.append(
         cheetah.SpaceChargeKick(
-            effect_length=slice_length,
-            num_grid_points_x=64,
-            num_grid_points_y=64,
-            num_grid_points_tau=64,
-            grid_extend_x=3,  # TODO: Simplify these to a single tensor?
-            grid_extend_y=3,
-            grid_extend_tau=3,
+            slice_length,
+            num_grid_points_x=torch.tensor(cfg.grid.x),
+            num_grid_points_y=torch.tensor(cfg.grid.y),
+            num_grid_points_tau=torch.tensor(cfg.grid.z),
+            grid_extend_x=torch.tensor(3.0),
+            grid_extend_y=torch.tensor(3.0),
+            grid_extend_tau=torch.tensor(3.0),
         )
     )
     elements.append(cheetah.Drift(slice_length))
-elements.append(cheetah.Drift(slice_length * 0.5))
 
 segment = cheetah.Segment(elements)
 
@@ -83,7 +77,11 @@ particles = beam.particles.numpy()
 particles = particles[:, :6]
 np.savetxt(os.path.join(output_dir, "beam_00.dat"), particles)
 
+print(torch.std(beam.particles, axis=0))
+
 beam = segment.track(beam)
+
+print(torch.std(beam.particles, axis=0))
 
 particles = beam.particles.numpy()
 particles = particles[:, :6]
