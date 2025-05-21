@@ -3,16 +3,14 @@ import h5py
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from omegaconf import DictConfig
+from omegaconf import OmegaConf
 
 import psdist.plot as psv
 import ultraplot as uplt
 
+from utils import pyorbit_to_impactx
 
-# Setup
-# --------------------------------------------------------------------------------------
-
-output_dir = "outputs/analysis"
-os.makedirs(output_dir, exist_ok=True)
 
 uplt.rc["axes.linewidth"] = 1.25
 uplt.rc["cmap.discrete"] = False
@@ -22,23 +20,37 @@ uplt.rc["grid"] = False
 uplt.rc["savefig.dpi"] = 300.0
 
 
-# RMS beam size evolution
+# Setup
+# --------------------------------------------------------------------------------------
+
+output_dir = "outputs/analysis"
+os.makedirs(output_dir, exist_ok=True)
+
+cfg = OmegaConf.load("./config.yaml")
+
+
+# Load scalar history
 # --------------------------------------------------------------------------------------
 
 histories = {}
 
+# PyORBIT
 history = pd.read_csv("./pyorbit/outputs/history.csv")
 histories["pyorbit"] = history.copy()
 
+# ImpactX
 history_ref = pd.read_csv("./impactx/diags/ref_particle.0.0", delimiter=" ")
-history_rms = pd.read_csv("./impactx/diags/reduced_beam_characteristics.0.0", delimiter=" ")
-history_rms["sig_z"] = history_rms["sig_t"] * history_ref["beta"]
-history_rms["emittance_z"] = history_rms["emittance_t"]
-histories["impactx"] = history_rms.copy()
+history = pd.read_csv("./impactx/diags/reduced_beam_characteristics.0.0", delimiter=" ")
+history["sig_z"] = history["sig_t"] * history_ref["beta"]
+history["sig_z_rest"] = history["sig_z"] * history_ref["gamma"]
+histories["impactx"] = history.copy()
 
+
+# Plot scalar history
+# --------------------------------------------------------------------------------------
 
 fig, axs = uplt.subplots(ncols=3, figheight=1.75)
-for ax, key in zip(axs, ["sig_x", "sig_y", "sig_z"]):
+for ax, key in zip(axs, ["sig_x", "sig_y", "sig_z_rest"]):
     ax.plot(histories["pyorbit"]["s"], histories["pyorbit"][key] * 1000.0, label="impactx", color="blacK", lw=2.0)
     ax.plot(histories["impactx"]["s"], histories["impactx"][key] * 1000.0, label="pyorbit", color="red")
 axs.format(xlabel="Distance [m]", ylabel="[mm]")
@@ -60,27 +72,30 @@ axs[1].legend(fontsize="medium", ncols=1, loc="right", framealpha=0.0)
 plt.savefig(os.path.join(output_dir, "fig_rms_emittances.png"))
 
 
-# Phase space distribution
+# Load phase space distribution
 # --------------------------------------------------------------------------------------
 
+# We convert all units to ImpactX units.
+
 particles = {}
-
 particles["pyorbit"] = []
-
-for filename in [
-    "pyorbit/outputs/bunch_00.dat",
-    "pyorbit/outputs/bunch_01.dat",
-]:
-    x = np.loadtxt(filename, usecols=range(6), comments="%")
-    x = x * 1000.0
-    particles["pyorbit"].append(x.copy())
-
 particles["impactx"] = []
 
+# PyORBIT
+filenames = [
+    "pyorbit/outputs/bunch_00.dat",
+    "pyorbit/outputs/bunch_01.dat",
+]
+for filename in filenames:
+    x = np.loadtxt(filename, usecols=range(6), comments="%")
+    x = pyorbit_to_impactx(x, mass=cfg.mass, kin_energy=cfg.kin_energy)
+    particles["pyorbit"].append(x.copy())
+
+
+# ImpactX
 file = h5py.File("./impactx/diags/openPMD/monitor.h5", "r")
 data = file["data"]
 step_keys = list(data.keys())  # strings representing step number []"1", "102", ...]
-
 for step_key in step_keys:
     x = [
         data[step_key]["particles"]["beam"]["position"]["x"],
@@ -91,19 +106,29 @@ for step_key in step_keys:
         data[step_key]["particles"]["beam"]["momentum"]["t"],
     ]
     x = np.stack(x, axis=-1)
-    x = x * 1000.0
-
-    ## [to do] Convert longitudinal coordiantes to z and dE.  
-    
     particles["impactx"].append(x.copy())
 
+# Scale units
+for key in particles:
+    for x in particles[key]:
+        x[:, 0] *= 1000.0  # [m] --> [mm]
+        x[:, 1] *= 1000.0
+        x[:, 2] *= 1000.0  # [m] --> [mm]
+        x[:, 3] *= 1000.0
+        x[:, 4] *= 1000.0  # [m] --> [mm]
+        x[:, 5] *= 1000.0
+
+
+# Plot phase space distribution
+# --------------------------------------------------------------------------------------
 
 for axis in [(0, 1), (2, 3), (0, 2)]:
     bins = 64
     xmax = np.std(particles["pyorbit"][-1], axis=0) * 3.0
     limits = list(zip(-xmax, xmax))
-    dims = ["x", "xp", "y", "yp", "z", "dE"]
-    units = ["mm", "mrad", "mm", "mrad", "mm", "MeV"]
+    
+    dims = ["x", "px", "y", "py", "t", "pt"]
+    units = ["mm", "", "mm", "", "mm", ""]
     labels = [f"{dim} [{unit}]" for dim, unit in zip(dims, units)]
 
     fig, axs = uplt.subplots(ncols=2, nrows=2, figheight=4.0)

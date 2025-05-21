@@ -23,18 +23,16 @@ filename = "./outputs/history.csv"
 history = pd.read_csv(filename)
 history.head()
 
-
-fig, ax = plt.subplots(figsize=(3, 2))
+fig, ax = plt.subplots(figsize=(3.0, 2.0))
 ax.plot(history["s"], history["sig_x"] * 1000.0)
 ax.plot(history["s"], history["sig_y"] * 1000.0)
-ax.plot(history["s"], history["sig_z"] * 1000.0)
+ax.plot(history["s"], history["sig_z_rest"] * 1000.0)
 plt.savefig(os.path.join(output_dir, "fig_rms.png"))
 
 
-fig, ax = plt.subplots(figsize=(3, 2))
+fig, ax = plt.subplots(figsize=(2.0, 2.0))
 ax.plot(history["s"], history["emittance_x"] * 1.00e+06)
 ax.plot(history["s"], history["emittance_y"] * 1.00e+06)
-ax.plot(history["s"], history["emittance_z"])
 plt.savefig(os.path.join(output_dir, "fig_emittance.png"))
 
 

@@ -23,26 +23,22 @@ os.makedirs(output_dir, exist_ok=True)
 
 filename = "diags/ref_particle.0.0"
 history_ref = pd.read_csv(filename, delimiter=" ")
-history_ref.head()
 
 filename = "diags/reduced_beam_characteristics.0.0"
-history_rms = pd.read_csv(filename, delimiter=" ")
-history_rms.head()
-
-history_rms["sig_z"] = history_rms["sig_t"] * history_ref["beta"]
-history_rms["emittance_z"] = history_rms["emittance_t"]
+history = pd.read_csv(filename, delimiter=" ")
+history["sig_z"] = history["sig_t"] * history_ref["beta"]
+history["sig_z_rest"] = history["sig_z"] * history_ref["gamma"]
 
 
 fig, ax = plt.subplots(figsize=(3, 2))
-ax.plot(history_rms["s"], history_rms["sig_x"] * 1000.0)
-ax.plot(history_rms["s"], history_rms["sig_y"] * 1000.0)
-ax.plot(history_rms["s"], history_rms["sig_z"] * 1000.0)
+ax.plot(history["s"], history["sig_x"] * 1000.0)
+ax.plot(history["s"], history["sig_y"] * 1000.0)
+ax.plot(history["s"], history["sig_z_rest"] * 1000.0)
 plt.savefig(os.path.join(output_dir, "fig_rms.png"))
 
-fig, ax = plt.subplots(figsize=(3, 2))
-ax.plot(history_rms["s"], history_rms["emittance_x"] * 1.00e+06)
-ax.plot(history_rms["s"], history_rms["emittance_y"] * 1.00e+06)
-ax.plot(history_rms["s"], history_rms["emittance_z"] * 1.00e+06)
+fig, ax = plt.subplots(figsize=(2.0, 2.0))
+ax.plot(history["s"], history["emittance_x"] * 1.00e+06)
+ax.plot(history["s"], history["emittance_y"] * 1.00e+06)
 plt.savefig(os.path.join(output_dir, "fig_emittance.png"))
 
 

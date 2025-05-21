@@ -44,10 +44,14 @@ ref_particle.set_mass_MeV(mass)
 ref_particle.set_kin_energy_MeV(kin_energy)
 
 # Load particles
+xrms = cfg.xrms  # rest frame [m]
+yrms = cfg.yrms  # rest frame [m]
+zrms = cfg.zrms / ref_particle.gamma  # rest frame [m]
+trms = zrms / ref_particle.beta
 dist = impactx.distribution.Gaussian(
-    lambdaX=cfg.xrms,
-    lambdaY=cfg.yrms,
-    lambdaT=cfg.zrms / ref_particle.beta,
+    lambdaX=xrms,
+    lambdaY=yrms,
+    lambdaT=trms,
     lambdaPx=0.0,
     lambdaPy=0.0,
     lambdaPt=0.0,

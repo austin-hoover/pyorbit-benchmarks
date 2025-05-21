@@ -47,13 +47,15 @@ sc_nodes = setSC3DAccNodes(lattice, delta_s, sc_calc)
 
 bunch = Bunch()
 bunch.mass(cfg.mass)
-bunch.getSyncParticle().kinEnergy(cfg.kin_energy)
 
+sync_part = bunch.getSyncParticle()
+sync_part.kinEnergy(cfg.kin_energy)
+    
 rng = np.random.default_rng(cfg.seed)
 for index in range(cfg.nparts):    
     x = rng.normal(scale=cfg.xrms)
     y = rng.normal(scale=cfg.yrms)
-    z = rng.normal(scale=cfg.zrms)
+    z = rng.normal(scale=cfg.zrms / sync_part.gamma())
     xp = 0.0
     yp = 0.0
     de = 0.0
@@ -90,9 +92,12 @@ class Monitor:
             "sig_x",
             "sig_y",
             "sig_z",
+            "sig_z_rest",
             "emittance_x",
             "emittance_y",
             "emittance_z",
+            "gamma",
+            "beta",
         ]:
             self.history[key] = []
 
@@ -117,6 +122,12 @@ class Monitor:
         self.history["emittance_x"].append(emittance_x)
         self.history["emittance_y"].append(emittance_y)
         self.history["emittance_z"].append(emittance_z)
+
+        gamma = bunch.getSyncParticle().gamma()
+        beta = bunch.getSyncParticle().beta()
+        self.history["gamma"].append(gamma)
+        self.history["beta"].append(beta)
+        self.history["sig_z_rest"].append(gamma * sigma_z)
 
         message = ""
         message += "s={:0.3f} ".format(distance)
