@@ -1,2 +1,4 @@
+h5py==3.13.0
+omegaconf==2.3.0
 psdist==2.1.4
 ultraplot==1.50.1
